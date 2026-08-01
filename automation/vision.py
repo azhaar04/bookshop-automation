@@ -1,5 +1,6 @@
 import re
 import bisect
+import time
 
 import pyautogui
 import config
@@ -178,3 +179,33 @@ def find_book_result(title_keyword, author_keyword, region=None):
     x, y, title_text, author_text = column_matches[0]
     print(f"[INFO] Confirmed: '{title_text}' -> '{author_text}'")
     return (x, y)
+
+
+_EAN_UPC_PATTERN = re.compile(
+    r"EAN\s*/?\s*UPC[:\s]*((?:\d[\s\-]*){13})",
+    re.IGNORECASE
+)
+
+
+def extract_ean_upc(max_scroll_attempts=8, scroll_amount=-600, scroll_wait=0.5):
+    
+    print("[INFO] Looking for EAN/UPC on the book page...")
+
+    screen_width, screen_height = pyautogui.size()
+    pyautogui.moveTo(screen_width // 2, screen_height // 2)
+
+    for attempt in range(max_scroll_attempts):
+        screenshot = pyautogui.screenshot()
+        text = pytesseract.image_to_string(screenshot, config=config.OCR_PSM_MODE)
+
+        match = _EAN_UPC_PATTERN.search(text)
+        if match:
+            ean_upc = re.sub(r"[\s\-]", "", match.group(1))
+            print(f"[INFO] Found EAN/UPC: {ean_upc}")
+            return ean_upc
+
+        pyautogui.scroll(scroll_amount)
+        time.sleep(scroll_wait)
+
+    print("[WARNING] EAN/UPC not found after scrolling.")
+    return None
