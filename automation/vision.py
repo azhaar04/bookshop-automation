@@ -1,3 +1,6 @@
+import re
+import bisect
+
 import pyautogui
 import config
 import pytesseract
@@ -18,12 +21,85 @@ def locate_search_box():
     return center
 
 
+def _contains_word(text, keyword):
+    return re.search(rf"\b{re.escape(keyword)}\b", text, re.IGNORECASE) is not None
+
+
+_FORMAT_KEYWORDS = {"paperback", "hardcover", "ebook", "audiobook"}
+_ANCHOR_MIN_CONFIDENCE = 40
+
+
+def _is_anchor_word(word):
+    if word["conf"] < _ANCHOR_MIN_CONFIDENCE:
+        return False
+
+    return word["text"].strip().lower() in _FORMAT_KEYWORDS
+
+
+def _detect_columns(words):
+    BIN_SIZE = 15
+
+    anchor_lefts = sorted(w["left"] for w in words if _is_anchor_word(w))
+
+    anchors = []
+    for left in anchor_lefts:
+        b = round(left / BIN_SIZE) * BIN_SIZE
+        if anchors and (b - anchors[-1]) <= BIN_SIZE:
+            continue
+        anchors.append(b)
+
+    if not anchors:
+        return []
+
+    columns = [[] for _ in anchors]
+    for w in words:
+        idx = bisect.bisect_right(anchors, w["left"]) - 1
+        columns[max(idx, 0)].append(w)
+
+    return columns
+
+
+def _build_lines(column_words):
+    LINE_TOLERANCE = 10
+    MAX_HORIZONTAL_GAP = 60  # words within one card sit close together
+
+    column_words = sorted(column_words, key=lambda w: (w["top"], w["left"]))
+
+    lines = []
+    current_line = []
+    current_top = None
+    prev_right = None
+
+    for w in column_words:
+        same_row = current_top is not None and abs(w["top"] - current_top) <= LINE_TOLERANCE
+        close_enough = prev_right is not None and (w["left"] - prev_right) <= MAX_HORIZONTAL_GAP
+
+        if same_row and close_enough:
+            current_line.append(w)
+        else:
+            if current_line:
+                lines.append(current_line)
+            current_line = [w]
+
+        current_top = w["top"]
+        prev_right = w["left"] + w["width"]
+
+    if current_line:
+        lines.append(current_line)
+
+    line_info = []
+    for line in lines:
+        text = " ".join(w["text"] for w in line)
+        left = min(w["left"] for w in line)
+        top = min(w["top"] for w in line)
+        width = max(w["left"] + w["width"] for w in line) - left
+        height = max(w["height"] for w in line)
+        line_info.append({"text": text, "left": left, "top": top, "width": width, "height": height})
+
+    return line_info
+
+
 def find_book_result(title_keyword, author_keyword, region=None):
-    """
-    Searches the search-results grid for a card whose title matches
-    `title_keyword` AND has a line just below it (in the same column)
-    matching `author_keyword`.
-    """
     print(f"[INFO] Looking for title '{title_keyword}' with author '{author_keyword}'...")
 
     if region:
@@ -49,69 +125,56 @@ def find_book_result(title_keyword, author_keyword, region=None):
                 "top": data['top'][i],
                 "width": data['width'][i],
                 "height": data['height'][i],
+                "conf": int(data['conf'][i]),
             })
 
-    words.sort(key=lambda w: (w["top"], w["left"]))
+    columns = _detect_columns(words)
+    if not columns:
+        print("[WARNING] Could not detect any result columns.")
+        return None
 
-    LINE_TOLERANCE = 10
-    MAX_HORIZONTAL_GAP = 100
-
-    lines = []
-    current_line = []
-    current_top = None
-    prev_right = None
-
-    for w in words:
-        same_row = current_top is not None and abs(w["top"] - current_top) <= LINE_TOLERANCE
-        close_enough = prev_right is not None and (w["left"] - prev_right) <= MAX_HORIZONTAL_GAP
-
-        if same_row and close_enough:
-            current_line.append(w)
-        else:
-            if current_line:
-                lines.append(current_line)
-            current_line = [w]
-            current_top = w["top"]
-
-        current_top = w["top"]
-        prev_right = w["left"] + w["width"]
-
-    if current_line:
-        lines.append(current_line)
-
-    line_info = []
-    for line in lines:
-        text = " ".join(w["text"] for w in line)
-        left = min(w["left"] for w in line)
-        top = min(w["top"] for w in line)
-        width = max(w["left"] + w["width"] for w in line) - left
-        height = max(w["height"] for w in line)
-        line_info.append({"text": text, "left": left, "top": top, "width": width, "height": height})
-
-    # --- geometric matching instead of index-based "next line" ---
-    HORIZONTAL_ALIGN_TOLERANCE = 60   # same column allowance
     MAX_VERTICAL_GAP_TO_AUTHOR = 150  # allows for a wrapped 2nd title line + author line below
 
-    title_candidates = [
-        line for line in line_info
-        if not line["text"].isupper() and title_keyword.lower() in line["text"].lower()
-    ]
+    column_matches = []
 
-    for title_line in title_candidates:
-        title_bottom = title_line["top"] + title_line["height"]
+    for column_words in columns:
+        line_info = _build_lines(column_words)
 
-        for line in line_info:
-            if line is title_line:
-                continue
+        title_candidates = [
+            line for line in line_info
+            if not line["text"].isupper() and _contains_word(line["text"], title_keyword)
+        ]
 
-            same_column = abs(line["left"] - title_line["left"]) <= HORIZONTAL_ALIGN_TOLERANCE
-            below_title = 0 <= (line["top"] - title_bottom) <= MAX_VERTICAL_GAP_TO_AUTHOR
+        best_in_column = None
+        best_gap = None
 
-            if same_column and below_title and author_keyword.lower() in line["text"].lower():
-                x = offset_x + title_line["left"] + title_line["width"] // 2
-                y = offset_y + title_line["top"] + title_line["height"] // 2
-                print(f"[INFO] Confirmed: '{title_line['text']}' -> '{line['text']}'")
-                return (x, y)
+        for title_line in title_candidates:
+            title_bottom = title_line["top"] + title_line["height"]
 
-    print(f"[WARNING] No confident match for title '{title_keyword}' + author '{author_keyword}'.")
-    return None
+            for line in line_info:
+                if line is title_line or line["text"].isupper():
+                    continue
+
+                gap = line["top"] - title_bottom
+                if 0 <= gap <= MAX_VERTICAL_GAP_TO_AUTHOR and _contains_word(line["text"], author_keyword):
+                    if best_gap is None or gap < best_gap:
+                        x = offset_x + title_line["left"] + title_line["width"] // 2
+                        y = offset_y + title_line["top"] + title_line["height"] // 2
+                        best_in_column = (x, y, title_line["text"], line["text"])
+                        best_gap = gap
+
+        if best_in_column:
+            column_matches.append(best_in_column)
+
+    if not column_matches:
+        print(f"[WARNING] No confident match for title '{title_keyword}' + author '{author_keyword}'.")
+        return None
+
+    if len(column_matches) > 1:
+        matched_titles = ", ".join(f"'{m[2]}'" for m in column_matches)
+        print(f"[WARNING] Keyword '{title_keyword}' matched {len(column_matches)} different "
+              f"cards ({matched_titles}) — it may be too generic. Using the leftmost match.")
+
+    x, y, title_text, author_text = column_matches[0]
+    print(f"[INFO] Confirmed: '{title_text}' -> '{author_text}'")
+    return (x, y)

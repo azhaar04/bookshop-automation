@@ -12,14 +12,14 @@ results_region = (0, config.RESULTS_REGION_TOP_OFFSET, screen_width, screen_heig
 
 search_box_position = locate_search_box()
 if click_at(search_box_position):
-    type_text("World Travel: An Irreverent Guide by Anthony Bourdain")
+    type_text("God Doesn't Relapse by Matt Grace ")
     press_enter()
 
 time.sleep(config.SEARCH_RESULT_WAIT)
 
 book_position = find_book_result(
-    title_keyword="Irreverent",
-    author_keyword="Bourdain",
+    title_keyword="doesn't",
+    author_keyword="Grace",
     region=results_region
 )
 

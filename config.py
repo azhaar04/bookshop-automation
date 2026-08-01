@@ -18,7 +18,7 @@ CONFIDENCE = 0.8
 
 # --- Timing Settings (seconds) ---
 PAGE_LOAD_WAIT = 3         
-SEARCH_RESULT_WAIT = 2    
+SEARCH_RESULT_WAIT = 4
 BOOK_PAGE_WAIT = 2         
 TYPE_INTERVAL = 0.05      
 
