@@ -24,3 +24,5 @@ TYPE_INTERVAL = 0.05
 
 # --- OCR Settings ---
 OCR_PSM_MODE = "--psm 6"  
+
+RESULTS_REGION_TOP_OFFSET = 450
