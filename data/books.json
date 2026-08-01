@@ -2,12 +2,13 @@
     {
         "title": "World Travel: An Irreverent Guide",
         "authors": "Anthony Bourdain and Laurie Woolever",
-        "search_query": "World Travel: An Irreverent Guide by Anthony Bourdain"
+        "title_keyword": "Irreverent",
+        "author_keyword": "Bourdain"
     },
     {
         "title": "The Silk Roads: A New History of the World",
         "authors": "Peter Frankopan",
-        "search_query": "The Silk Roads: A New History of the World by Peter Frankopan"
+        "title_keyword": "History",
+        "author_keyword": "Frankopan"
     }
 ]
-
