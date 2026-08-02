@@ -32,7 +32,7 @@ def main():
         if not click_at(search_box_position):
             results[book["title"]] = {
                 "authors": book["authors"],
-                "ean_upc": None,
+                "EAN/UPC": None,
                 "note": "Search box not found"
             }
             continue
@@ -50,7 +50,7 @@ def main():
         if position is None:
             results[book["title"]] = {
                 "authors": book["authors"],
-                "ean_upc": None,
+                "EAN/UPC": None,
                 "note": "Book not found in search results"
             }
             continue
@@ -61,7 +61,7 @@ def main():
         ean_upc = extract_ean_upc()
         results[book["title"]] = {
             "authors": book["authors"],
-            "ean_upc": ean_upc
+            "EAN/UPC": ean_upc
         }
 
     os.makedirs(os.path.dirname(config.OUTPUT_PATH), exist_ok=True)
