@@ -2,7 +2,7 @@ import json
 import os
 import time
 
-from automation.browser import open_browser, go_to_homepage
+from automation.browser import open_browser, scroll_to_top
 from automation.vision import locate_search_box, find_book_result, extract_ean_upc
 from automation.controller import click_at, type_text, press_enter
 import config
@@ -26,7 +26,7 @@ def main():
         print(f"\n[INFO] === Book {i + 1}/{len(books)}: {book['title']} ===")
 
         if i > 0:
-            go_to_homepage()
+            scroll_to_top()
 
         search_box_position = locate_search_box()
         if not click_at(search_box_position):

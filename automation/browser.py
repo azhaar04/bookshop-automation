@@ -26,12 +26,7 @@ def open_browser():
     print("[INFO] Browser opened and maximized.")
 
 
-def go_to_homepage():
-    print("[INFO] Returning to homepage (same tab)...")
-    pyautogui.hotkey('ctrl', 'l')
+def scroll_to_top():
+    print("[INFO] Scrolling back to top of page...")
+    pyautogui.press('home')
     time.sleep(0.5)
-    pyautogui.typewrite(config.BASE_URL, interval=config.TYPE_INTERVAL)
-    pyautogui.press('enter')
-
-    time.sleep(config.PAGE_LOAD_WAIT)
-    print("[INFO] Back on homepage.")
