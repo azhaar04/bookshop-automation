@@ -6,5 +6,13 @@
     "The Silk Roads: A New History of the World": {
         "authors": "Peter Frankopan",
         "ean_upc": "9781101912379"
+    },
+    "The Iliad": {
+        "authors": "Homer",
+        "ean_upc": "9781324076148"
+    },
+    "Fishbone Cinderella": {
+        "authors": "Elizabeth Lim",
+        "ean_upc": "9798217092987"
     }
 }
