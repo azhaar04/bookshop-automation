@@ -2,7 +2,7 @@
     {
         "title": "World Travel: An Irreverent Guide",
         "authors": "Anthony Bourdain and Laurie Woolever",
-        "title_keyword": "Irreverent",
+        "title_keyword": "World",
         "author_keyword": "Bourdain"
     },
     {
@@ -22,5 +22,11 @@
         "authors": "Elizabeth Lim",
         "title_keyword": "Fishbone",
         "author_keyword": "Lim"
+    },
+    {
+        "title": "Regime Change: Inside the Imperial Presidency of Donald Trump",
+        "authors": "Maggie Haberman and Jonathan Swan",
+        "title_keyword": "Regime",
+        "author_keyword": "Haberman"
     }
 ]
